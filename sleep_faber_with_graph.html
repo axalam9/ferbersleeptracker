@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ferber Sleep Training Timer</title>
+  <style>
+    :root {
+      --bg: #020617;
+      --card: rgba(255, 255, 255, 0.08);
+      --card-strong: rgba(15, 23, 42, 0.86);
+      --text: #ffffff;
+      --muted: #cbd5e1;
+      --muted-2: #94a3b8;
+      --primary: #6366f1;
+      --primary-dark: #4f46e5;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --border: rgba(255, 255, 255, 0.12);
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(99, 102, 241, 0.24), transparent 34%),
+        radial-gradient(circle at bottom right, rgba(16, 185, 129, 0.13), transparent 32%),
+        var(--bg);
+      color: var(--text);
+      padding: 18px;
+    }
+
+    .app { width: min(1050px, 100%); margin: 0 auto; }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      background: rgba(99, 102, 241, 0.16);
+      color: #c7d2fe;
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+
+    h1 {
+      font-size: clamp(30px, 5vw, 46px);
+      line-height: 1.02;
+      margin: 0;
+      letter-spacing: -0.04em;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      margin: 12px 0 0;
+      max-width: 680px;
+      line-height: 1.55;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+      overflow: hidden;
+    }
+
+    .card-content { padding: 20px; }
+
+    .day-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin-bottom: 16px;
+    }
+
+    button {
+      border: 0;
+      color: white;
+      cursor: pointer;
+      font: inherit;
+      font-weight: 750;
+      border-radius: 18px;
+      padding: 12px 15px;
+      background: rgba(255, 255, 255, 0.1);
+      transition: transform 0.12s ease, background 0.12s ease, opacity 0.12s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button:active { transform: scale(0.98); }
+    button:hover { background: rgba(255, 255, 255, 0.15); }
+    button.active { background: var(--primary); }
+    button:disabled { opacity: 0.42; cursor: not-allowed; transform: none; }
+
+    .sound-btn { white-space: nowrap; }
+
+    .timer-panel {
+      background: var(--card-strong);
+      border-radius: 26px;
+      padding: 24px;
+      text-align: center;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 7px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+
+    .timer-label {
+      color: var(--muted);
+      margin-bottom: 8px;
+      font-size: 15px;
+    }
+
+    .time {
+      font-size: clamp(72px, 14vw, 120px);
+      font-weight: 950;
+      letter-spacing: -0.08em;
+      line-height: 0.95;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .wait-text {
+      color: var(--muted);
+      margin-top: 14px;
+      font-size: 17px;
+      line-height: 1.45;
+    }
+
+    .wait-text strong { color: white; }
+
+    .progress-wrap {
+      width: 100%;
+      height: 13px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.1);
+      overflow: hidden;
+      margin-top: 22px;
+    }
+
+    .progress {
+      height: 100%;
+      width: 0%;
+      background: #818cf8;
+      border-radius: 999px;
+      transition: width 0.25s linear;
+    }
+
+    .main-controls {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 22px;
+    }
+
+    .baby-down { background: var(--success); }
+    .baby-down:hover { background: #059669; }
+    .start { background: var(--success); }
+    .start:hover { background: #059669; }
+    .check { background: var(--primary); }
+    .check:hover { background: var(--primary-dark); }
+    .asleep { background: var(--warning); color: #111827; }
+    .asleep:hover { background: #d97706; }
+    .reset-current { background: rgba(255, 255, 255, 0.1); }
+
+    .side { display: grid; gap: 16px; }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    h2 { margin: 0; font-size: 21px; letter-spacing: -0.02em; }
+
+    .plan-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    .plan-cell {
+      border-radius: 18px;
+      background: rgba(15, 23, 42, 0.78);
+      padding: 12px 8px;
+      text-align: center;
+    }
+
+    .plan-cell.current { background: var(--primary); }
+    .plan-cell.complete { background: rgba(16, 185, 129, 0.28); }
+
+    .plan-label { color: var(--muted); font-size: 12px; min-height: 30px; }
+    .plan-minutes { font-size: 28px; font-weight: 900; margin-top: 2px; }
+    .plan-unit { font-size: 12px; color: var(--muted-2); }
+
+    .empty-log, .note, .summary-box, .chart-wrap {
+      background: rgba(15, 23, 42, 0.78);
+      color: var(--muted);
+      border-radius: 18px;
+      padding: 14px;
+      line-height: 1.55;
+    }
+
+    .summary-box { display: grid; gap: 8px; margin-bottom: 12px; }
+
+    .summary-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .summary-row span:first-child { color: var(--muted-2); }
+    .summary-row span:last-child { color: white; font-weight: 800; text-align: right; }
+
+    .log-list { display: grid; gap: 8px; }
+
+    .log-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background: rgba(15, 23, 42, 0.78);
+      border-radius: 18px;
+      padding: 12px 14px;
+    }
+
+    .log-title { font-weight: 800; }
+    .log-sub, .log-time { color: var(--muted-2); font-size: 14px; margin-top: 2px; }
+    .note strong { color: white; }
+
+    canvas { width: 100%; height: 220px; display: block; }
+
+    .export-actions {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    @media print {
+      body { background: white !important; color: black !important; padding: 24px; }
+      .app { display: none !important; }
+      #printReport { display: block !important; color: black !important; }
+      #printReport h1 { font-size: 24px; letter-spacing: 0; }
+      #printReport pre { white-space: pre-wrap; line-height: 1.5; font-family: Arial, sans-serif; }
+    }
+
+    #printReport { display: none; }
+
+    @media (max-width: 860px) {
+      .header { flex-direction: column; }
+      .layout { grid-template-columns: 1fr; }
+      .main-controls { grid-template-columns: 1fr; }
+      .plan-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="header">
+      <div>
+        <div class="badge">🌙 Ferber Method Timer</div>
+        <h1>Sleep Training Check-In Timer</h1>
+        <p class="subtitle">Tap “Baby Down” once when your baby is placed in bed. The first wait timer starts automatically. When the timer ends, tap “Go Check-In,” complete the 45-second check-in countdown, and the next wait interval starts automatically.</p>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <button id="soundButton" class="sound-btn">🔔 Sound On</button>
+        <button id="exportPdfButton" class="sound-btn">📄 Export PDF</button>
+      </div>
+    </header>
+
+    <section class="layout">
+      <div class="card">
+        <div class="card-content">
+          <div id="dayButtons" class="day-buttons"></div>
+
+          <div class="timer-panel">
+            <div id="statusPill" class="status-pill">Ready for bedtime</div>
+            <div id="timerLabel" class="timer-label"></div>
+            <div id="timeDisplay" class="time">00:00</div>
+            <div id="waitText" class="wait-text"></div>
+
+            <div class="progress-wrap">
+              <div id="progressBar" class="progress"></div>
+            </div>
+
+            <div class="main-controls">
+              <button id="babyDownButton" class="baby-down">🛏️ Baby Down</button>
+              <button id="startPauseButton" class="start">▶ Start</button>
+              <button id="checkButton" class="check">Go Check-In</button>
+            </div>
+
+            <div class="main-controls" style="margin-top: 10px; grid-template-columns: repeat(2, 1fr);">
+              <button id="asleepButton" class="asleep">😴 Baby Asleep</button>
+              <button id="resetTimerButton" class="reset-current">↺ Reset Timer</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="side">
+        <div class="card">
+          <div class="card-content">
+            <div class="section-head">
+              <h2>Tonight’s Plan</h2>
+              <button id="resetNightButton">Reset Night</button>
+            </div>
+            <div id="planGrid" class="plan-grid"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-content">
+            <h2 style="margin-bottom: 14px;">Night Summary</h2>
+            <div id="summaryContainer" class="summary-box"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-content">
+            <h2 style="margin-bottom: 14px;">Progress Chart</h2>
+            <div class="chart-wrap">
+              <canvas id="progressChart" width="700" height="260"></canvas>
+            </div>
+          </div>
+        </div>
+
+        
+        </div>
+
+        <div class="card">
+          <div class="card-content">
+            <h2 style="margin-bottom: 14px;">Check-In Log</h2>
+            <div id="logContainer"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-content">
+            <div class="note"><strong>Gentle reminder:</strong> Keep check-ins brief, calm, and boring. This tool is only a timer and log helper; follow your pediatrician’s guidance for your baby’s needs.</div>
+          </div>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <section id="printReport"></section>
+
+  <script>
+    const schedule = [
+      { day: 1, intervals: [3, 5, 10, 10] },
+      { day: 2, intervals: [5, 10, 12, 12] },
+      { day: 3, intervals: [10, 12, 15, 15] },
+      { day: 4, intervals: [12, 15, 17, 17] },
+      { day: 5, intervals: [15, 17, 20, 20] },
+      { day: 6, intervals: [17, 20, 25, 25] },
+      { day: 7, intervals: [20, 25, 30, 30] },
+    ];
+
+    const MODE_READY = "ready";
+    const MODE_WAITING = "waiting";
+    const MODE_WAIT_EXPIRED = "wait_expired";
+    const MODE_CHECKIN = "checkin";
+    const MODE_ASLEEP = "asleep";
+    const STORAGE_KEY = "ferberSleepTrainingApp.v2";
+
+    let selectedDay = 1;
+    let checkInIndex = 0;
+    let mode = MODE_READY;
+    let isRunning = false;
+    let soundEnabled = true;
+    let timerId = null;
+    let completedCheckIns = [];
+    let babyDownAt = null;
+    let babyAsleepAt = null;
+    let dayHistory = {};
+    let remainingSeconds = getCurrentMinutes() * 60;
+    let timerTotalSeconds = getCurrentMinutes() * 60;
+
+    const dayButtons = document.getElementById("dayButtons");
+    const statusPill = document.getElementById("statusPill");
+    const timerLabel = document.getElementById("timerLabel");
+    const timeDisplay = document.getElementById("timeDisplay");
+    const waitText = document.getElementById("waitText");
+    const progressBar = document.getElementById("progressBar");
+    const babyDownButton = document.getElementById("babyDownButton");
+    const startPauseButton = document.getElementById("startPauseButton");
+    const checkButton = document.getElementById("checkButton");
+    const asleepButton = document.getElementById("asleepButton");
+    const resetTimerButton = document.getElementById("resetTimerButton");
+    const resetNightButton = document.getElementById("resetNightButton");
+    const planGrid = document.getElementById("planGrid");
+    const logContainer = document.getElementById("logContainer");
+    const summaryContainer = document.getElementById("summaryContainer");
+    const soundButton = document.getElementById("soundButton");
+    const progressChart = document.getElementById("progressChart");
+    const exportTextButton = document.getElementById("exportTextButton");
+    const exportPdfButton = document.getElementById("exportPdfButton");
+    const printReport = document.getElementById("printReport");
+
+    function getDayPlan() {
+      return schedule.find(item => item.day === selectedDay) || schedule[0];
+    }
+
+    function getCurrentMinutes() {
+      const plan = schedule.find(item => item.day === selectedDay) || schedule[0];
+      return plan.intervals[Math.min(checkInIndex, 3)];
+    }
+
+    function getCheckInLabel(index) {
+      if (index === 0) return "1st Check-In";
+      if (index === 1) return "2nd Check-In";
+      if (index === 2) return "3rd Check-In";
+      return "4+ Check-Ins";
+    }
+
+    function formatTime(totalSeconds) {
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+    }
+
+    function formatClock(date) {
+      if (!date) return "—";
+      return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    }
+
+    function formatDuration(start, end) {
+      if (!start || !end) return "—";
+      const totalSeconds = Math.max(0, Math.round((end - start) / 1000));
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      if (minutes < 60) return `${minutes}m ${seconds}s`;
+      const hours = Math.floor(minutes / 60);
+      const mins = minutes % 60;
+      return `${hours}h ${mins}m`;
+    }
+
+    function playBeep() {
+      if (!soundEnabled) return;
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const audioContext = new AudioContext();
+        const oscillator = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        oscillator.connect(gain);
+        gain.connect(audioContext.destination);
+        oscillator.frequency.value = 880;
+        gain.gain.setValueAtTime(0.08, audioContext.currentTime);
+        oscillator.start();
+        oscillator.stop(audioContext.currentTime + 0.25);
+      } catch (e) {}
+      if ("vibrate" in navigator) navigator.vibrate([250, 120, 250]);
+    }
+
+    function serializeSession() {
+      return {
+        completedCheckIns: completedCheckIns.map(item => ({
+          ...item,
+          completedAt: item.completedAt ? item.completedAt.toISOString() : null,
+        })),
+        babyDownAt: babyDownAt ? babyDownAt.toISOString() : null,
+        babyAsleepAt: babyAsleepAt ? babyAsleepAt.toISOString() : null,
+        checkInIndex,
+        mode,
+        remainingSeconds,
+        timerTotalSeconds,
+      };
+    }
+
+    function saveCurrentDay() {
+      if (babyDownAt || babyAsleepAt || completedCheckIns.length > 0) {
+        dayHistory[selectedDay] = serializeSession();
+      }
+      persistAppState();
+    }
+
+    function persistAppState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          selectedDay,
+          mode,
+          isRunning: false,
+          soundEnabled,
+          dayHistory,
+          currentSession: serializeSession(),
+          savedAt: new Date().toISOString(),
+        }));
+      } catch (e) {}
+    }
+
+    function restoreAppState() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        if (!saved) return;
+        selectedDay = saved.selectedDay || 1;
+        soundEnabled = saved.soundEnabled !== false;
+        dayHistory = saved.dayHistory || {};
+        const session = saved.currentSession || dayHistory[selectedDay];
+        if (session) applySession(session, true);
+      } catch (e) {}
+    }
+
+    function applySession(session, preserveTimer) {
+      completedCheckIns = (session.completedCheckIns || []).map(item => ({
+        ...item,
+        completedAt: item.completedAt ? new Date(item.completedAt) : null,
+      }));
+      babyDownAt = session.babyDownAt ? new Date(session.babyDownAt) : null;
+      babyAsleepAt = session.babyAsleepAt ? new Date(session.babyAsleepAt) : null;
+      checkInIndex = session.checkInIndex || 0;
+      mode = session.mode || MODE_READY;
+      remainingSeconds = preserveTimer && typeof session.remainingSeconds === "number" ? session.remainingSeconds : getCurrentMinutes() * 60;
+      timerTotalSeconds = preserveTimer && typeof session.timerTotalSeconds === "number" ? session.timerTotalSeconds : getCurrentMinutes() * 60;
+      isRunning = false;
+      if (babyAsleepAt) mode = MODE_ASLEEP;
+    }
+
+    function loadDay(day) {
+      stopTimer(false);
+      selectedDay = day;
+      const saved = dayHistory[day];
+      if (saved) {
+        applySession(saved, true);
+      } else {
+        completedCheckIns = [];
+        babyDownAt = null;
+        babyAsleepAt = null;
+        checkInIndex = 0;
+        mode = MODE_READY;
+        timerTotalSeconds = getCurrentMinutes() * 60;
+        remainingSeconds = timerTotalSeconds;
+        isRunning = false;
+      }
+      render();
+    }
+
+    function stopTimer(renderNow = true) {
+      isRunning = false;
+      clearInterval(timerId);
+      timerId = null;
+      if (renderNow) render();
+    }
+
+    function runCountdown(onExpire) {
+      if (timerId) clearInterval(timerId);
+      isRunning = true;
+      timerId = setInterval(() => {
+        remainingSeconds -= 1;
+        if (remainingSeconds <= 0) {
+          remainingSeconds = 0;
+          stopTimer(false);
+          onExpire();
+          playBeep();
+          render();
+        } else {
+          render();
+        }
+      }, 1000);
+      render();
+    }
+
+    function startWaitTimer() {
+      mode = MODE_WAITING;
+      timerTotalSeconds = getCurrentMinutes() * 60;
+      remainingSeconds = timerTotalSeconds;
+      runCountdown(() => { mode = MODE_WAIT_EXPIRED; });
+    }
+
+    function resumeWaitTimer() {
+      mode = MODE_WAITING;
+      runCountdown(() => { mode = MODE_WAIT_EXPIRED; });
+    }
+
+    function startCheckInTimer() {
+      if (mode !== MODE_WAIT_EXPIRED) return;
+      mode = MODE_CHECKIN;
+      timerTotalSeconds = 45;
+      remainingSeconds = 45;
+      runCountdown(() => {
+        completedCheckIns.push({
+          checkIn: checkInIndex + 1,
+          minutes: getCurrentMinutes(),
+          completedAt: new Date(),
+          checkInDurationSeconds: 45,
+        });
+        checkInIndex += 1;
+        startWaitTimer();
+      });
+    }
+
+    function handleBabyDown() {
+      if (babyDownAt) return;
+      babyDownAt = new Date();
+      babyAsleepAt = null;
+      completedCheckIns = [];
+      checkInIndex = 0;
+      startWaitTimer();
+    }
+
+    function handleBabyAsleep() {
+      if (!babyDownAt || mode === MODE_ASLEEP) return;
+      babyAsleepAt = new Date();
+      mode = MODE_ASLEEP;
+      remainingSeconds = 0;
+      timerTotalSeconds = 1;
+      stopTimer(false);
+      saveCurrentDay();
+
+      const previousDay = selectedDay;
+      const sleepTime = formatClock(babyAsleepAt);
+      const sleepDuration = formatDuration(babyDownAt, babyAsleepAt);
+      const nextDay = selectedDay < 7 ? selectedDay + 1 : 7;
+      render();
+
+      setTimeout(() => {
+        alert(`Baby asleep logged for Day ${previousDay} at ${sleepTime}. Time to sleep: ${sleepDuration}. Moving to Day ${nextDay}.`);
+        loadDay(nextDay);
+      }, 100);
+    }
+
+    function resetCurrentTimer() {
+      stopTimer(false);
+      if (mode === MODE_CHECKIN) {
+        timerTotalSeconds = 45;
+        remainingSeconds = 45;
+      } else if (mode === MODE_WAIT_EXPIRED) {
+        remainingSeconds = 0;
+      } else {
+        timerTotalSeconds = getCurrentMinutes() * 60;
+        remainingSeconds = timerTotalSeconds;
+      }
+      render();
+    }
+
+    function resetNight() {
+      stopTimer(false);
+      delete dayHistory[selectedDay];
+      checkInIndex = 0;
+      completedCheckIns = [];
+      babyDownAt = null;
+      babyAsleepAt = null;
+      mode = MODE_READY;
+      timerTotalSeconds = getCurrentMinutes() * 60;
+      remainingSeconds = timerTotalSeconds;
+      render();
+    }
+
+    function changeDay(day) {
+      saveCurrentDay();
+      loadDay(day);
+    }
+
+    function renderDayButtons() {
+      dayButtons.innerHTML = "";
+      schedule.forEach(item => {
+        const button = document.createElement("button");
+        button.textContent = `Day ${item.day}`;
+        button.className = item.day === selectedDay ? "active" : "";
+        button.onclick = () => changeDay(item.day);
+        dayButtons.appendChild(button);
+      });
+    }
+
+    function renderPlan() {
+      const plan = getDayPlan();
+      planGrid.innerHTML = "";
+      plan.intervals.forEach((minutes, index) => {
+        const cell = document.createElement("div");
+        const cappedIndex = Math.min(checkInIndex, 3);
+        cell.className = "plan-cell";
+        if (index === cappedIndex && mode !== MODE_ASLEEP) cell.classList.add("current");
+        if (index < checkInIndex) cell.classList.add("complete");
+        cell.innerHTML = `
+          <div class="plan-label">${getCheckInLabel(index)}</div>
+          <div class="plan-minutes">${minutes}</div>
+          <div class="plan-unit">min</div>
+        `;
+        planGrid.appendChild(cell);
+      });
+    }
+
+    function renderSummary() {
+      const now = new Date();
+      const effectiveEnd = babyAsleepAt || (babyDownAt ? now : null);
+      summaryContainer.innerHTML = `
+        <div class="summary-row"><span>Baby down</span><span>${formatClock(babyDownAt)}</span></div>
+        <div class="summary-row"><span>Baby asleep</span><span>${formatClock(babyAsleepAt)}</span></div>
+        <div class="summary-row"><span>Time to sleep</span><span>${formatDuration(babyDownAt, effectiveEnd)}</span></div>
+        <div class="summary-row"><span>Check-ins completed</span><span>${completedCheckIns.length}</span></div>
+      `;
+    }
+
+    function renderLog() {
+      if (completedCheckIns.length === 0) {
+        logContainer.innerHTML = `<div class="empty-log">No check-ins logged yet. After the wait timer ends, tap “Go Check-In.” The app will run a 45-second check-in countdown and log it automatically.</div>`;
+        return;
+      }
+      logContainer.innerHTML = `<div class="log-list"></div>`;
+      const list = logContainer.querySelector(".log-list");
+      completedCheckIns.forEach(item => {
+        const row = document.createElement("div");
+        row.className = "log-item";
+        row.innerHTML = `
+          <div>
+            <div class="log-title">Check-In ${item.checkIn}</div>
+            <div class="log-sub">Waited ${item.minutes} min · 45s check-in</div>
+          </div>
+          <div class="log-time">${formatClock(item.completedAt)}</div>
+        `;
+        list.appendChild(row);
+      });
+    }
+
+    function getSleepMinutesForDay(day) {
+      const saved = dayHistory[day];
+      if (!saved || !saved.babyDownAt || !saved.babyAsleepAt) return null;
+      return Math.round((new Date(saved.babyAsleepAt) - new Date(saved.babyDownAt)) / 60000);
+    }
+
+    function drawProgressChart() {
+      const canvas = progressChart;
+      const ctx = canvas.getContext("2d");
+      const width = canvas.width;
+      const height = canvas.height;
+      ctx.clearRect(0, 0, width, height);
+
+      const padding = 42;
+      const chartWidth = width - padding * 2;
+      const chartHeight = height - padding * 2;
+      const values = schedule.map(item => getSleepMinutesForDay(item.day));
+      const numericValues = values.filter(value => value !== null);
+
+      ctx.strokeStyle = "rgba(255,255,255,0.18)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(padding, padding);
+      ctx.lineTo(padding, height - padding);
+      ctx.lineTo(width - padding, height - padding);
+      ctx.stroke();
+
+      ctx.fillStyle = "rgba(203,213,225,0.9)";
+      ctx.font = "14px Arial";
+      ctx.fillText("Minutes to fall asleep", padding, 22);
+
+      if (numericValues.length === 0) {
+        ctx.fillStyle = "rgba(203,213,225,0.75)";
+        ctx.font = "16px Arial";
+        ctx.fillText("No sleep data yet. Tap Baby Asleep to add data.", padding, height / 2);
+      } else {
+        const maxValue = Math.max(10, ...numericValues) + 5;
+        const xFor = index => padding + (index / 6) * chartWidth;
+        const yFor = value => height - padding - (value / maxValue) * chartHeight;
+
+        ctx.strokeStyle = "rgba(129,140,248,0.95)";
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        let started = false;
+        values.forEach((value, index) => {
+          if (value === null) return;
+          const x = xFor(index);
+          const y = yFor(value);
+          if (!started) { ctx.moveTo(x, y); started = true; }
+          else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+
+        values.forEach((value, index) => {
+          if (value === null) return;
+          const x = xFor(index);
+          const y = yFor(value);
+          ctx.beginPath();
+          ctx.fillStyle = "#818cf8";
+          ctx.arc(x, y, 7, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "white";
+          ctx.font = "13px Arial";
+          ctx.fillText(`${value}m`, x - 12, y - 13);
+        });
+      }
+
+      ctx.fillStyle = "rgba(203,213,225,0.8)";
+      ctx.font = "13px Arial";
+      schedule.forEach((item, index) => {
+        const x = padding + (index / 6) * chartWidth;
+        ctx.fillText(`D${item.day}`, x - 8, height - 14);
+      });
+    }
+
+    function buildExportText() {
+      saveCurrentDay();
+      const lines = [];
+      lines.push("Ferber Sleep Training Log");
+      lines.push(`Exported: ${new Date().toLocaleString()}`);
+      lines.push("");
+      schedule.forEach(item => {
+        const saved = dayHistory[item.day];
+        lines.push(`Day ${item.day}`);
+        if (!saved) {
+          lines.push("  No data recorded.");
+          lines.push("");
+          return;
+        }
+        const down = saved.babyDownAt ? new Date(saved.babyDownAt) : null;
+        const asleep = saved.babyAsleepAt ? new Date(saved.babyAsleepAt) : null;
+        lines.push(`  Baby down: ${formatClock(down)}`);
+        lines.push(`  Baby asleep: ${formatClock(asleep)}`);
+        lines.push(`  Time to sleep: ${formatDuration(down, asleep)}`);
+        lines.push(`  Check-ins completed: ${(saved.completedCheckIns || []).length}`);
+        (saved.completedCheckIns || []).forEach(check => {
+          const completedAt = check.completedAt ? new Date(check.completedAt) : null;
+          lines.push(`    - Check-In ${check.checkIn}: waited ${check.minutes} min, completed at ${formatClock(completedAt)}, duration 45s`);
+        });
+        lines.push("");
+      });
+      return lines.join("\n");
+    }
+
+    function exportText() {
+      const text = buildExportText();
+      const blob = new Blob([text], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "ferber-sleep-training-log.txt";
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function exportPdf() {
+      const text = buildExportText();
+      const safeText = text.replace(/[&<>]/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[char]));
+      printReport.innerHTML = `<h1>Ferber Sleep Training Log</h1><pre>${safeText}</pre>`;
+      window.print();
+    }
+
+    function render() {
+      const progress = timerTotalSeconds === 0 ? 0 : ((timerTotalSeconds - remainingSeconds) / timerTotalSeconds) * 100;
+      const isStarted = !!babyDownAt;
+      const isAsleep = mode === MODE_ASLEEP;
+
+      if (mode === MODE_READY) statusPill.textContent = "Ready for bedtime";
+      if (mode === MODE_WAITING) statusPill.textContent = "Wait timer running";
+      if (mode === MODE_WAIT_EXPIRED) statusPill.textContent = "Time to check in";
+      if (mode === MODE_CHECKIN) statusPill.textContent = "45-second check-in running";
+      if (mode === MODE_ASLEEP) statusPill.textContent = "Baby asleep logged";
+
+      timerLabel.textContent = mode === MODE_CHECKIN
+        ? `Day ${selectedDay} · Check-In ${checkInIndex + 1}`
+        : `Day ${selectedDay} · ${getCheckInLabel(Math.min(checkInIndex, 3))}`;
+      timeDisplay.textContent = formatTime(remainingSeconds);
+
+      if (mode === MODE_READY) waitText.innerHTML = `Tap <strong>Baby Down</strong> once to log bedtime and automatically start the first wait timer.`;
+      else if (mode === MODE_WAITING) waitText.innerHTML = `Wait <strong>${getCurrentMinutes()} minutes</strong> before this check-in.`;
+      else if (mode === MODE_WAIT_EXPIRED) waitText.innerHTML = `Timer expired. Tap <strong>Go Check-In</strong> and keep the check-in brief.`;
+      else if (mode === MODE_CHECKIN) waitText.innerHTML = `Do a calm, boring check-in. The next wait interval will start automatically after <strong>45 seconds</strong>.`;
+      else waitText.innerHTML = `Baby asleep logged. The next day is ready.`;
+
+      progressBar.style.width = `${Math.max(0, Math.min(100, progress))}%`;
+      startPauseButton.textContent = isRunning ? "Ⅱ Pause" : "▶ Start";
+      checkButton.textContent = mode === MODE_CHECKIN ? "Check-In Running" : "Go Check-In";
+      soundButton.textContent = soundEnabled ? "🔔 Sound On" : "🔕 Sound Off";
+
+      babyDownButton.disabled = isStarted || isAsleep;
+      startPauseButton.disabled = !isStarted || mode === MODE_WAIT_EXPIRED || mode === MODE_CHECKIN || isAsleep;
+      checkButton.disabled = mode !== MODE_WAIT_EXPIRED;
+      asleepButton.disabled = !isStarted || isAsleep;
+      resetTimerButton.disabled = isAsleep;
+
+      renderDayButtons();
+      renderPlan();
+      renderSummary();
+      renderLog();
+      drawProgressChart();
+      persistAppState();
+    }
+
+    babyDownButton.onclick = handleBabyDown;
+    startPauseButton.onclick = () => {
+      if (isRunning) stopTimer();
+      else if (mode === MODE_WAITING) resumeWaitTimer();
+    };
+    checkButton.onclick = startCheckInTimer;
+    asleepButton.onclick = handleBabyAsleep;
+    resetTimerButton.onclick = resetCurrentTimer;
+    resetNightButton.onclick = resetNight;
+    soundButton.onclick = () => {
+      soundEnabled = !soundEnabled;
+      render();
+    };
+    if (exportTextButton) exportTextButton.onclick = exportText;
+    if (exportPdfButton) exportPdfButton.onclick = exportPdf;
+
+    setInterval(() => {
+      if (babyDownAt && !babyAsleepAt) renderSummary();
+    }, 1000);
+
+    restoreAppState();
+    render();
+  </script>
+</body>
+</html>
